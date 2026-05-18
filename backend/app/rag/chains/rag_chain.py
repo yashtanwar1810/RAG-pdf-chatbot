@@ -1,7 +1,6 @@
 import asyncio
 
 from google import genai
-from langchain_openai import ChatOpenAI
 
 from app.core.config import get_settings
 from app.rag.prompts.rag_prompt import build_rag_prompt
@@ -20,14 +19,6 @@ class RagChain:
                 raise ValueError("GOOGLE_API_KEY is required for Gemini chat generation.")
             self.client = genai.Client(api_key=settings.google_api_key)
             self.model_name = settings.model_name
-        elif provider == "openai":
-            if not settings.openai_api_key:
-                raise ValueError("OPENAI_API_KEY is required for OpenAI chat generation.")
-            self.llm = ChatOpenAI(
-                model=settings.model_name,
-                api_key=settings.openai_api_key,
-                temperature=0,
-            )
         else:
             raise ValueError(f"Unsupported llm_provider '{settings.llm_provider}'. Use 'gemini' or 'openai'.")
 

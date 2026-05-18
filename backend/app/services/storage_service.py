@@ -1,7 +1,6 @@
 import logging
 from pathlib import Path
 
-import boto3
 import cloudinary
 import cloudinary.uploader
 
@@ -32,11 +31,9 @@ class StorageService:
     def upload_pdf(self, filename: str, raw_bytes: bytes) -> str:
         if self.settings.storage_backend == "cloudinary":
             return self._upload_cloudinary(filename, raw_bytes)
-        if self.settings.storage_backend == "s3":
-            return self._upload_s3(filename, raw_bytes)
         if self.settings.storage_backend == "local":
             return self._upload_local(filename, raw_bytes)
-        raise ValueError("STORAGE_BACKEND must be one of: 'cloudinary', 's3', or 'local'.")
+        raise ValueError("STORAGE_BACKEND must be one of: 'cloudinary', or 'local'.")
 
     def _upload_cloudinary(self, filename: str, raw_bytes: bytes) -> str:
         if not (
@@ -55,28 +52,7 @@ class StorageService:
         )
         return str(result["secure_url"])
 
-    def _upload_s3(self, filename: str, raw_bytes: bytes) -> str:
-        if not (
-            self.settings.aws_access_key_id
-            and self.settings.aws_secret_access_key
-            and self.settings.s3_bucket_name
-        ):
-            raise ValueError("AWS S3 credentials or bucket name are missing.")
-        s3 = boto3.client(
-            "s3",
-            aws_access_key_id=self.settings.aws_access_key_id,
-            aws_secret_access_key=self.settings.aws_secret_access_key,
-            region_name=self.settings.aws_region,
-        )
-        key = f"pdfs/{filename}"
-        s3.put_object(
-            Bucket=self.settings.s3_bucket_name,
-            Key=key,
-            Body=raw_bytes,
-            ContentType="application/pdf",
-        )
-        return f"https://{self.settings.s3_bucket_name}.s3.{self.settings.aws_region}.amazonaws.com/{key}"
-
+    
     def _upload_local(self, filename: str, raw_bytes: bytes) -> str:
         local_dir = Path(self.settings.local_storage_dir)
         local_dir.mkdir(parents=True, exist_ok=True)
@@ -113,16 +89,6 @@ class StorageService:
         if self.settings.storage_backend == "cloudinary":
             public_id = f"pdfs/{filename.rsplit('.', 1)[0]}"
             cloudinary.uploader.destroy(public_id, resource_type="raw")
-            return
-        if self.settings.storage_backend == "s3":
-            s3 = boto3.client(
-                "s3",
-                aws_access_key_id=self.settings.aws_access_key_id,
-                aws_secret_access_key=self.settings.aws_secret_access_key,
-                region_name=self.settings.aws_region,
-            )
-            key = file_url.split(".amazonaws.com/")[-1]
-            s3.delete_object(Bucket=self.settings.s3_bucket_name, Key=key)
             return
         if self.settings.storage_backend == "local":
             path = Path(file_url)

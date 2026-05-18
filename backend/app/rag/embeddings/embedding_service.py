@@ -1,7 +1,6 @@
 import asyncio
 
 from google import genai
-from langchain_openai import OpenAIEmbeddings
 
 from app.core.config import get_settings
 
@@ -16,14 +15,6 @@ class EmbeddingService:
                 raise ValueError("GOOGLE_API_KEY is required for Gemini embedding generation.")
             self.client = genai.Client(api_key=settings.google_api_key)
             self.embedding_model = self._normalize_gemini_embedding_model(settings.embedding_model)
-        elif provider == "openai":
-            if not settings.openai_api_key:
-                raise ValueError("OPENAI_API_KEY is required for OpenAI embedding generation.")
-            self.client = OpenAIEmbeddings(
-                model=settings.embedding_model,
-                api_key=settings.openai_api_key,
-            )
-            self.embedding_model = ""
         else:
             raise ValueError(f"Unsupported llm_provider '{settings.llm_provider}'. Use 'gemini' or 'openai'.")
         self.provider = provider
